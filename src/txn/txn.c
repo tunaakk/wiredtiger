@@ -2052,7 +2052,6 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[], wt_timestamp_t step
             /* Apply the timestamp rules to a truncate recorded as a range. */
             WT_ERR(__wt_txn_timestamp_usage_check(
               session, op->btree, txn->time_point.commit_timestamp, WT_TS_NONE));
-            __wti_mark_committed_truncate_table(session, op);
             break;
         }
 
@@ -2229,7 +2228,8 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[], wt_timestamp_t step
             if (op->u.ref->page_del != NULL)
                 __wt_tsan_suppress_store_bool(&op->u.ref->page_del->committed, true);
             WT_REF_UNLOCK(op->u.ref, previous_state);
-        }
+        } else if (op->type == WT_TXN_OP_FOLLOWER_TRUNCATE)
+            __wti_mark_committed_truncate_table(session, op);
         __wt_txn_op_free(session, op);
     }
     txn->mod_count = 0;
